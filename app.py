@@ -6,7 +6,6 @@ import platform
 app = Flask(__name__)
 board = chess.Board()
 
-
 current_os = platform.system()
 if current_os == "Windows":
     engine_path = r"windows_engine\.ros-engine-windows-x86-64-modern.exe"
