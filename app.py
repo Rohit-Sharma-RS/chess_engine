@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request, render_template
 import chess
 import chess.engine
 import platform
+import os
 
 app = Flask(__name__)
 board = chess.Board()
@@ -10,7 +11,10 @@ current_os = platform.system()
 if current_os == "Windows":
     engine_path = r"windows_engine\.ros-engine-windows-x86-64-modern.exe"
 elif current_os == "Linux":
-    engine_path = r"linux_engine\stockfish-ubuntu-x86-64"
+    engine_path = os.path.join('linux_engine', 'stockfish-ubuntu-x86-64')
+
+
+print(f"Using Stockfish engine at: {engine_path}")
 
 
 @app.route('/')
