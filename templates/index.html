@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess AI Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(8, 50px);
+            grid-template-rows: repeat(8, 50px);
+            margin: 20px auto;
+            width: 400px;
+            border: 2px solid black;
+        }
+        .square {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            position: relative;
+            border: 1px solid #ccc;
+        }
+        .white {
+            background-color: #f0d9b5;
+        }
+        .black {
+            background-color: #b58863;
+        }
+        button {
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        .coordinate {
+            font-size: 10px;
+            color: black;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chess AI</h1>
+    <div id="board"></div>
+    <button onclick="resetGame()">Reset Game</button>
+    <button onclick="getSuggestion()">Get AI Suggestion</button>
+    <button id="autoMoveButton" onclick="autoMove()">Auto Move</button>
+
+    <script>
+        const boardElement = document.getElementById('board');
+        const unicodePieces = {
+            'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚', 'p': '♟',
+            'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔', 'P': '♙'
+        };
+
+        function createBoard(fen) {
+            boardElement.innerHTML = ''; // Clear the board
+            const [position] = fen.split(' ');
+            const rows = position.split('/');
+            rows.forEach((row, rowIndex) => {
+                let colIndex = 0;
+                for (const char of row) {
+                    if (isNaN(char)) {
+                        const square = document.createElement('div');
+                        square.className = `square ${(rowIndex + colIndex) % 2 === 0 ? 'white' : 'black'}`;
+                        square.textContent = unicodePieces[char] || '';
+                        square.dataset.position = `${String.fromCharCode(97 + colIndex)}${8 - rowIndex}`;
+                        const coordinateDiv = document.createElement('div');
+                        coordinateDiv.className = 'coordinate';
+                        coordinateDiv.textContent = `${String.fromCharCode(97 + colIndex)}${8 - rowIndex}`;
+                        square.appendChild(coordinateDiv);
+                        square.addEventListener('click', () => handleMove(square.dataset.position));
+                        boardElement.appendChild(square);
+                        colIndex++;
+                    } else {
+                        const emptySquares = parseInt(char, 10);
+                        for (let i = 0; i < emptySquares; i++) {
+                            const square = document.createElement('div');
+                            square.className = `square ${(rowIndex + colIndex) % 2 === 0 ? 'white' : 'black'}`;
+                            square.dataset.position = `${String.fromCharCode(97 + colIndex)}${8 - rowIndex}`;
+                            const coordinateDiv = document.createElement('div');
+                            coordinateDiv.className = 'coordinate';
+                            coordinateDiv.textContent = `${String.fromCharCode(97 + colIndex)}${8 - rowIndex}`;
+                            square.appendChild(coordinateDiv);
+                            square.addEventListener('click', () => handleMove(square.dataset.position));
+                            boardElement.appendChild(square);
+                            colIndex++;
+                        }
+                    }
+                }
+            });
+        }
+
+        async function resetGame() {
+            const response = await fetch('/reset', { method: 'POST' });
+            const result = await response.json();
+            if (result.status === 'success') {
+                createBoard(result.fen);
+            }
+        }
+
+        async function getSuggestion() {
+            const response = await fetch('/get_suggestion');
+            const result = await response.json();
+            if (result.status === 'success') {
+                alert(`Suggested move: ${result.suggestion}`);
+            }
+        }
+
+        async function handleMove(position) {
+            const move = prompt(`Enter your move starting from ${position} (e.g., e2e4):`);
+            if (!move) return;
+            const response = await fetch('/make_move', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ move })
+            });
+            const result = await response.json();
+            if (result.status === 'success') {
+                createBoard(result.fen);
+            } else {
+                alert(result.message);
+            }
+        }
+
+        async function autoMove() {
+            const autoMoveButton = document.getElementById('autoMoveButton');
+            try {
+                const response = await fetch('/auto_move', { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    alert(`AI move: ${result.move}`);
+                    createBoard(result.fen); // Update the board with the new FEN
+                } else {
+                    alert("Auto move failed.");
+                }
+            } catch (error) {
+                console.error('Error in autoMove:', error);
+            }
+        }
+
+        resetGame();
+    </script>
+</body>
+</html>
