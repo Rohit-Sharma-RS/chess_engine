@@ -10,7 +10,7 @@ current_os = platform.system()
 if current_os == "Windows":
     engine_path = r"windows_engine\.ros-engine-windows-x86-64-modern.exe"
 elif current_os == "Linux":
-    engine_path = r"linux_engine\stockfish-ubuntu-x86-64-avx2"
+    engine_path = r"linux_engine\stockfish-ubuntu-x86-64"
 
 
 @app.route('/')
@@ -61,7 +61,9 @@ def get_ai_suggestion():
             suggested_move = result.move.uci()
             return jsonify({"status": "success", "suggestion": suggested_move})
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)})
+        print(f"Error with Stockfish: {e}")  # Debugging line
+        return jsonify({"status": "error", "message": f"Error using Stockfish: {str(e)}"})
+
 
 @app.route('/auto_move', methods=['POST'])
 def auto_move():
