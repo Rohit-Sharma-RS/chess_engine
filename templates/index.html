@@ -3,98 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chess AI Calculator</title>
+    <title>AI-Powered Chess</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        .board {
+            width: 480px;
+            margin: auto;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+        }
+        .square {
+            width: 60px;
+            height: 60px;
+            text-align: center;
+            line-height: 60px;
+            font-size: 24px;
+            position: relative;
+        }
+        .light { background-color: #f0d9b5; }
+        .dark { background-color: #b58863; }
+        .highlight { background-color: yellow !important; }
+        .coordinates {
+            position: absolute;
+            font-size: 10px;
+            top: 2px;
+            left: 2px;
+            color: rgba(0, 0, 0, 0.6);
+        }
+        .btn-group {
+            margin: 20px auto;
+            display: flex;
+            justify-content: center;
+            gap: 10px; /* Adds space between buttons */
+        }
+        .btn {
+            border-radius: 25px; /* Makes the buttons curved */
+            border: 1px solid #ccc; /* Light border */
+            font-size: 14px;
+            padding: 5px 10px; /* Adjusts size */
+            background-color: transparent; /* Removes filled color */
+            color: #333; /* Neutral text color */
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .btn:hover {
+            background-color: #ddd; /* Subtle hover effect */
+            color: #000;
+        }
         body {
             font-family: Arial, sans-serif;
             text-align: center;
-        }
-        #board {
-            display: grid;
-            grid-template-columns: repeat(8, 50px);
-            grid-template-rows: repeat(8, 50px);
-            margin: 20px auto;
-            width: 400px;
-            border: 2px solid black;
-        }
-        .square {
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            position: relative;
-            border: 1px solid #ccc;
-        }
-        .white {
-            background-color: #f0d9b5;
-        }
-        .black {
-            background-color: #b58863;
-        }
-        button {
-            margin: 10px;
-            padding: 10px;
-            font-size: 16px;
-        }
-        .coordinate {
-            font-size: 10px;
-            color: black;
-            position: absolute;
-            top: 2px;
-            left: 2px;
+            padding: 20px;
         }
     </style>
 </head>
 <body>
-    <h1>Chess AI</h1>
-    <div id="board"></div>
-    <button onclick="resetGame()">Reset Game</button>
-    <button onclick="getSuggestion()">Get AI Suggestion</button>
-    <button id="autoMoveButton" onclick="autoMove()">Auto Move</button>
-<footer>
-    <p>Created by Rohit Sharma</p>
-    <p>Follow me on <a href="https://www.linkedin.com/in/rohit-sharma-b26200282/"><b>Linked In</b></a>,  <a href="https://github.com/Rohit-Sharma-RS"><b>GitHub</b></a></p>
-</footer>
+    <h1 class="mb-4">Chess AI</h1>
+    <div id="board" class="board"></div>
+    <div class="btn-group">
+        <button id="reset-btn" class="btn">Reset Game</button>
+        <button id="ai-suggest-btn" class="btn">Get AI Suggestion</button>
+        <button id="auto-move-btn" class="btn">AI Auto Move</button>
+    </div>
+
     <script>
-        const boardElement = document.getElementById('board');
-        const unicodePieces = {
-            'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚', 'p': '♟',
-            'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔', 'P': '♙'
+        const boardDiv = document.getElementById("board");
+        const resetBtn = document.getElementById("reset-btn");
+        const aiSuggestBtn = document.getElementById("ai-suggest-btn");
+        const autoMoveBtn = document.getElementById("auto-move-btn");
+
+        let selectedSquare = null;
+        let legalMoves = [];
+
+        // Map FEN piece characters to Unicode chess symbols
+        const pieceSymbols = {
+            'P': '♙', 'p': '♟', 
+            'R': '♖', 'r': '♜', 
+            'N': '♘', 'n': '♞', 
+            'B': '♗', 'b': '♝', 
+            'Q': '♕', 'q': '♛', 
+            'K': '♔', 'k': '♚'
         };
 
-        function createBoard(fen) {
-            boardElement.innerHTML = ''; // Clear the board
-            const [position] = fen.split(' ');
-            const rows = position.split('/');
-            rows.forEach((row, rowIndex) => {
+        function drawBoard(fen) {
+            boardDiv.innerHTML = "";
+            const rows = fen.split(" ")[0].split("/");
+            rows.forEach((row, i) => {
                 let colIndex = 0;
-                for (const char of row) {
+                for (let char of row) {
                     if (isNaN(char)) {
-                        const square = document.createElement('div');
-                        square.className = `square ${(rowIndex + colIndex) % 2 === 0 ? 'white' : 'black'}`;
-                        square.textContent = unicodePieces[char] || '';
-                        square.dataset.position = `${String.fromCharCode(97 + colIndex)}${8 - rowIndex}`;
-                        const coordinateDiv = document.createElement('div');
-                        coordinateDiv.className = 'coordinate';
-                        coordinateDiv.textContent = `${String.fromCharCode(97 + colIndex)}${8 - rowIndex}`;
-                        square.appendChild(coordinateDiv);
-                        square.addEventListener('click', () => handleMove(square.dataset.position));
-                        boardElement.appendChild(square);
+                        const squareDiv = createSquare(i, colIndex, char);
+                        boardDiv.appendChild(squareDiv);
                         colIndex++;
                     } else {
-                        const emptySquares = parseInt(char, 10);
-                        for (let i = 0; i < emptySquares; i++) {
-                            const square = document.createElement('div');
-                            square.className = `square ${(rowIndex + colIndex) % 2 === 0 ? 'white' : 'black'}`;
-                            square.dataset.position = `${String.fromCharCode(97 + colIndex)}${8 - rowIndex}`;
-                            const coordinateDiv = document.createElement('div');
-                            coordinateDiv.className = 'coordinate';
-                            coordinateDiv.textContent = `${String.fromCharCode(97 + colIndex)}${8 - rowIndex}`;
-                            square.appendChild(coordinateDiv);
-                            square.addEventListener('click', () => handleMove(square.dataset.position));
-                            boardElement.appendChild(square);
+                        for (let j = 0; j < parseInt(char); j++) {
+                            const squareDiv = createSquare(i, colIndex, "");
+                            boardDiv.appendChild(squareDiv);
                             colIndex++;
                         }
                     }
@@ -102,56 +107,106 @@
             });
         }
 
-        async function resetGame() {
-            const response = await fetch('/reset', { method: 'POST' });
-            const result = await response.json();
-            if (result.status === 'success') {
-                createBoard(result.fen);
-            }
+        function createSquare(row, col, piece) {
+            const squareId = `${String.fromCharCode(97 + col)}${8 - row}`;
+            const squareDiv = document.createElement("div");
+            squareDiv.className = `square ${((row + col) % 2 === 0) ? "dark" : "light"}`;
+            squareDiv.id = squareId;
+
+            // Add chess piece
+            squareDiv.innerText = pieceSymbols[piece] || "";
+
+            // Add coordinates
+            const coordDiv = document.createElement("div");
+            coordDiv.className = "coordinates";
+            coordDiv.innerText = squareId;
+            squareDiv.appendChild(coordDiv);
+
+            squareDiv.addEventListener("click", () => handleSquareClick(squareId));
+            return squareDiv;
         }
 
-        async function getSuggestion() {
-            const response = await fetch('/get_suggestion');
-            const result = await response.json();
-            if (result.status === 'success') {
-                alert(`Suggested move: ${result.suggestion}`);
-            }
-        }
-
-        async function handleMove(position) {
-            const move = prompt(`Enter your move starting from ${position} (e.g., e2e4):`);
-            if (!move) return;
-            const response = await fetch('/make_move', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ move })
-            });
-            const result = await response.json();
-            if (result.status === 'success') {
-                createBoard(result.fen);
+        async function handleSquareClick(square) {
+            if (selectedSquare && legalMoves.includes(`${selectedSquare}${square}`)) {
+                await makeMove(`${selectedSquare}${square}`);
+                selectedSquare = null;
+                legalMoves = [];
+                highlightMoves([]);
             } else {
-                alert(result.message);
-            }
-        }
-
-        async function autoMove() {
-            const autoMoveButton = document.getElementById('autoMoveButton');
-            try {
-                const response = await fetch('/auto_move', { method: 'POST' });
-                const result = await response.json();
-                
-                if (result.status === 'success') {
-                    alert(`AI move: ${result.move}`);
-                    createBoard(result.fen); // Update the board with the new FEN
-                } else {
-                    alert("Auto move failed.");
+                selectedSquare = square;
+                const response = await fetch("/get_legal_moves", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ square }),
+                });
+                const data = await response.json();
+                if (data.status === "success") {
+                    legalMoves = data.legal_moves;
+                    highlightMoves(legalMoves.map(move => move.slice(2)));
                 }
-            } catch (error) {
-                console.error('Error in autoMove:', error);
             }
         }
 
-        resetGame();
+        function highlightMoves(squares) {
+            document.querySelectorAll(".square").forEach(sq => {
+                sq.classList.remove("highlight");
+            });
+            squares.forEach(target => {
+                const squareDiv = document.getElementById(target);
+                if (squareDiv) {
+                    squareDiv.classList.add("highlight");
+                }
+            });
+        }
+
+        async function makeMove(move) {
+            const response = await fetch("/make_move", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ move }),
+            });
+            const data = await response.json();
+            if (data.status === "success") {
+                drawBoard(data.fen);
+            } else {
+                alert(data.message);
+            }
+        }
+
+        resetBtn.addEventListener("click", async () => {
+            const response = await fetch("/reset", { method: "POST" });
+            const data = await response.json();
+            if (data.status === "success") {
+                drawBoard(data.fen);
+            }
+        });
+
+        aiSuggestBtn.addEventListener("click", async () => {
+            const response = await fetch("/get_ai_suggestion");
+            const data = await response.json();
+            if (data.status === "success") {
+                alert(`AI Suggests: ${data.suggestion}`);
+            }
+        });
+
+        autoMoveBtn.addEventListener("click", async () => {
+            const response = await fetch("/auto_move", { method: "POST" });
+            const data = await response.json();
+            if (data.status === "success") {
+                drawBoard(data.fen);
+                alert(`AI Moved: ${data.move}`);
+            }
+        });
+
+        async function initBoard() {
+            const response = await fetch("/reset", { method: "POST" });
+            const data = await response.json();
+            if (data.status === "success") {
+                drawBoard(data.fen);
+            }
+        }
+
+        initBoard();
     </script>
 </body>
 </html>
