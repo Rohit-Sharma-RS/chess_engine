@@ -21,7 +21,7 @@
 
 ## 🚀 **Tech Stack**  
 
-- **Frontend**: HTML, CSS, Bootstrap for responsive design  
+- **Frontend**: HTML, CSS, Bootstrap for responsive design, Interactive JavaScript-powered chessboard
 - **Backend**: Python (Flask framework)  
 - **AI Integration**: AI engine for move suggestions  
 
